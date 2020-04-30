@@ -1,0 +1,255 @@
+---
+title: "chicago-covid"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+library(ggrepel)
+library(maps)
+library(tidycensus)
+library(readxl)
+library(janitor)
+library(skimr)
+library(tigris)
+library(rgeos)
+library(sp)
+library(broom)
+library(gt)
+```
+# all data retrieved April 28, 2020:
+COVID Data: https://www.dph.illinois.gov/covid19/covid19-statistics
+Demographic info: census (acs5)
+Chicago zip codes: https://www.zip-codes.com/city/il-chicago.asp
+
+
+```{r chicago_read_data, cache = TRUE}
+
+# loads all cases in Illinois downloaded from 
+# Illinois DPH. Potentially make this update live?
+
+cases_illinois <- read_excel("data/illinois_zip_cases.xlsx") %>%  
+  clean_names() %>% 
+  mutate(zip = as.character(zip))
+
+# collect Illinois zip codes with geographic info
+
+ZCTAGeography_illinios <- zctas(state = "IL", year = 2010)
+
+# collects Chicago zip codes to filter later
+
+zips_chicago <- read_excel("data/chicago_zip.xlsx") %>% 
+  mutate(zip = as.character(zip))
+
+```
+
+```{r chicago_cleaning, cache = TRUE}
+
+# specifies race variables to read in from the census
+
+racevars <- c(White = "B02001_002",
+              Black = "B02001_003",
+              Hispanic = "B03003_003"
+             )
+
+# collect race data from the census at the zip code
+# level; calculates percentages for graphing later;
+# filters for only chicago zip codes
+
+race_chicago <- get_acs(geography = "zcta",
+                variables = racevars,
+                year = 2018,
+                geometry = TRUE,
+                summary_var = "B02001_001",
+                output = "wide") %>%
+   mutate(NAME = as.numeric(substr(NAME, 7, 12))) %>%
+   mutate(percent_white = 100 * (WhiteE / summary_est),
+          percent_non_white = 100 - percent_white,
+          percent_black = 100 * (BlackE / summary_est),
+          percent_hispanic = 100 * (HispanicE / summary_est)) %>% 
+  filter(GEOID %in% zips_chicago$zip)
+
+chicago <- left_join(x = race_chicago,
+                       y = cases_illinois,
+                       by = c("GEOID" = "zip")) %>% 
+  mutate(positive_cases = if_else(is.na(positive_cases), 0, positive_cases))
+```
+
+
+
+
+```{r}
+plot_race <- function(data, fill, subtitle, legend){
+  
+  ggplot(chicago) +
+    geom_sf(aes(fill = data, color = data))+
+    labs(title = "Racial Distribution of Chicago by Zipcode",
+         subtitle = subtitle,
+         fill = legend) +
+    theme_void() +
+    scale_fill_gradient(low = "white", 
+                        high = fill,
+                        breaks = c(0, 20, 40, 60, 80, 100)) +
+    scale_color_gradient(low = "white", high = fill) +
+    theme(text = element_text(family = "Avenir"),
+          legend.position = c(1., 0.75),
+          legend.key.size = unit(0.4, "cm"),
+          legend.title = element_text(size =10),
+          legend.text = element_text(size = 8)) +
+    guides(color = FALSE)
+  
+}
+
+plot_corona <- function(){
+    ggplot(chicago) +
+    geom_sf(aes(fill= positive_cases, color = positive_cases)) +
+    labs(title = "Confirmed Cases of COVID-19 in Chicago by Zipcode",
+         fill = "Confirmed Cases") +
+    theme_void() +
+    scale_fill_gradient(low = "white", 
+                        high = "brown") +
+    scale_color_gradient(low = "white", high = "brown") +
+    theme(text= element_text(family = "Avenir"),
+          legend.position = c(1.08, 0.72),
+          legend.key.size = unit(0.4, "cm"),
+          legend.title = element_text(size =10),
+          legend.text = element_text(size = 8)) +
+    guides(color = FALSE)
+}
+
+
+
+
+plot_race(data = chicago$percent_hispanic, 
+          fill = "navy",
+          subtitle = "Hispanic Population", 
+          legend = "% Hispanic" 
+          )
+
+plot_race(data = chicago$percent_black, 
+          fill = "black",
+          subtitle = "Black Population", 
+          legend = "% Black"
+          )
+
+plot_race(data = chicago$percent_white, 
+          fill = "darkviolet",
+          subtitle = "White Population", 
+          legend = "% White"
+          )
+
+plot_race(data = chicago$percent_non_white, 
+          fill = "darkgreen",
+          subtitle = "Non White Population", 
+          legend = "% Non White"
+          )
+
+plot_corona()
+
+```
+
+
+# Chicago Statistics
+```{r}
+
+chicago_analysis <- as_tibble(chicago) %>% 
+  select(NAME, WhiteE, percent_white, BlackE, percent_black, HispanicE, percent_hispanic, percent_non_white, summary_est, positive_cases) %>% 
+  # mutate(majority = ifelse(percent_non_white >= 50, "white", "non_white"))
+  mutate(majority = case_when(percent_white >=50 ~ "white",
+                              percent_black >=50 ~ "black",
+                              percent_hispanic >=50 ~ "hispanic",
+                              TRUE ~ "other")) %>% 
+  mutate(sum = percent_white + percent_black)
+
+```
+
+```{r model}
+
+white_model <- lm(positive_cases ~ percent_white, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  filter(term == "percent_white")
+
+black_model <- lm(positive_cases ~ percent_black, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  filter(term == "percent_black")
+
+hispanic_model <- lm(positive_cases ~ percent_hispanic, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  filter(term == "percent_hispanic")
+
+non_white_model <- lm(positive_cases ~ percent_non_white, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  filter(term == "percent_non_white")
+
+models <- rbind(white_model, black_model, hispanic_model, non_white_model)
+
+models %>% 
+  gt()
+```
+
+
+```{r averages}
+
+table <- chicago_analysis %>% 
+  group_by(majority) %>% 
+  summarize(average_cases = round(mean(positive_cases), 0)) 
+
+table$majority <- c("Black", "Hispanic", "Other", "White")
+
+table %>% 
+  gt() %>% 
+  tab_header(title = "Confirmed Cases of COVID-19 in Chicago by Racial Group") %>% 
+  tab_source_note(source_note = "Source: Illinois DPH 04-28-2020") %>% 
+  cols_label(majority = "Majority Racial Group",
+           average_cases = "Average Cases") %>% 
+  gtsave("figures/cases-by-race.png")
+
+
+```
+
+
+```{r graph}
+
+ggplot(data = chicago_analysis,
+       aes(x = percent_non_white,
+           y = positive_cases,
+           size = summary_est,
+           color = majority)) +
+  geom_point() +
+  geom_smooth(inherit.aes = FALSE,
+              aes(x = percent_non_white,
+                  y = positive_cases),
+              method = "lm",
+              se = FALSE, color = '#dc143c',
+              linetype = "dashed") +
+  theme_classic() +
+  labs(title = "Confirmed Cases of COVID-19 in Chicago by Racial Group",
+       x = "Percent Not White",
+       y = "Confirmed Cases of COVID-19",
+       color = "Racial Group") +
+  scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
+  guides(size = FALSE,
+         colour = guide_legend(override.aes = list(size=5))) +
+  theme(text=element_text(family="Avenir"))
+
+ggsave("figures/graph.png")
+
+```
+
+
+
+
+
+
+
+
