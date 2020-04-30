@@ -245,11 +245,3 @@ ggplot(data = chicago_analysis,
 ggsave("figures/graph.png")
 
 ```
-
-
-
-
-
-
-
-
