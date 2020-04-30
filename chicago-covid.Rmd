@@ -123,34 +123,37 @@ plot_corona <- function(){
     guides(color = FALSE)
 }
 
-
-
-
 plot_race(data = chicago$percent_hispanic, 
           fill = "navy",
           subtitle = "Hispanic Population", 
           legend = "% Hispanic" 
           )
+ggsave("figures/hispanic.png")
 
 plot_race(data = chicago$percent_black, 
           fill = "black",
           subtitle = "Black Population", 
           legend = "% Black"
           )
+ggsave("figures/black.png")
 
 plot_race(data = chicago$percent_white, 
           fill = "darkviolet",
           subtitle = "White Population", 
           legend = "% White"
           )
+ggsave("figures/white.png")
 
 plot_race(data = chicago$percent_non_white, 
           fill = "darkgreen",
           subtitle = "Non White Population", 
           legend = "% Non White"
           )
+ggsave("figures/non_white.png")
 
 plot_corona()
+ggsave("figures/corona.png")
+
 
 ```
 
@@ -242,6 +245,14 @@ ggplot(data = chicago_analysis,
          colour = guide_legend(override.aes = list(size=5))) +
   theme(text=element_text(family="Avenir"))
 
-ggsave("figures/graph.png")
+ggsave("figures/regression.png")
 
 ```
+
+
+- Population density confounding variable; cases per 1,000 people or number versus number
+- NOT percent and number.
+- Calculate percentage of cases? No because confounding 
+- for a randomly selected district in Chicago, are COVID cases higher for certain minorities
+
+
