@@ -70,7 +70,7 @@ server <- function(input, output) {
         race_graph <- plot_race(data,
                                 fill,
                                 legend,
-                                subtitle)
+                                 subtitle)
         
         corona_graph <- plot_corona()
         
