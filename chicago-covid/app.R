@@ -19,7 +19,7 @@ ui <- navbarPage(
     "COVID-19 Prevalence in Chicago by Race",
     
     tabPanel("Geographic Distribution",
-             h3("title"),
+             h3("COVID-19 Prevalence in Chicago by Race"),
              selectInput("var", 
                          label = "Choose a variable to display",
                          choices = c("Percent White", 

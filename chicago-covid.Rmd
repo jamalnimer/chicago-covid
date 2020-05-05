@@ -78,7 +78,8 @@ race_chicago <- get_acs(geography = "zcta",
 chicago <- left_join(x = race_chicago,
                        y = cases_illinois,
                        by = c("GEOID" = "zip")) %>% 
-  mutate(positive_cases = if_else(is.na(positive_cases), 0, positive_cases))
+  mutate(positive_cases = if_else(is.na(positive_cases), 0, positive_cases)) %>% 
+  mutate(cases_per_1000 = positive_cases/summary_est*1000)
 ```
 
 
@@ -108,9 +109,9 @@ plot_race <- function(data, fill, subtitle, legend){
 
 plot_corona <- function(){
     ggplot(chicago) +
-    geom_sf(aes(fill= positive_cases, color = positive_cases)) +
+    geom_sf(aes(fill= cases_per_1000, color = cases_per_1000)) +
     labs(title = "Confirmed Cases of COVID-19 in Chicago by Zipcode",
-         fill = "Confirmed Cases") +
+         fill = "Cases Per 1000") +
     theme_void() +
     scale_fill_gradient(low = "white", 
                         high = "brown") +
@@ -162,7 +163,7 @@ ggsave("figures/corona.png")
 ```{r}
 
 chicago_analysis <- as_tibble(chicago) %>% 
-  select(NAME, WhiteE, percent_white, BlackE, percent_black, HispanicE, percent_hispanic, percent_non_white, summary_est, positive_cases) %>% 
+  select(NAME, WhiteE, percent_white, BlackE, percent_black, HispanicE, percent_hispanic, percent_non_white, summary_est, positive_cases, cases_per_1000) %>% 
   # mutate(majority = ifelse(percent_non_white >= 50, "white", "non_white"))
   mutate(majority = case_when(percent_white >=50 ~ "white",
                               percent_black >=50 ~ "black",
@@ -205,7 +206,7 @@ models %>%
 
 table <- chicago_analysis %>% 
   group_by(majority) %>% 
-  summarize(average_cases = round(mean(positive_cases), 0)) 
+  summarize(average_cases = round(mean(cases_per_1000), 0)) 
 
 table$majority <- c("Black", "Hispanic", "Other", "White")
 
@@ -224,20 +225,20 @@ table %>%
 ```{r graph}
 
 ggplot(data = chicago_analysis,
-       aes(x = percent_non_white,
+       aes(x = percent_white,
            y = positive_cases,
            size = summary_est,
            color = majority)) +
   geom_point() +
   geom_smooth(inherit.aes = FALSE,
-              aes(x = percent_non_white,
+              aes(x = percent_white,
                   y = positive_cases),
               method = "lm",
               se = FALSE, color = '#dc143c',
               linetype = "dashed") +
   theme_classic() +
   labs(title = "Confirmed Cases of COVID-19 in Chicago by Racial Group",
-       x = "Percent Not White",
+       x = "Percent White",
        y = "Confirmed Cases of COVID-19",
        color = "Racial Group") +
   scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
