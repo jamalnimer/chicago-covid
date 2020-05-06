@@ -4,6 +4,9 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
+# loads all necessary libraries
+
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(ggplot2)
@@ -32,7 +35,7 @@ Chicago zip codes: https://www.zip-codes.com/city/il-chicago.asp
 ```{r chicago_read_data, cache = TRUE}
 
 # loads all cases in Illinois downloaded from 
-# Illinois DPH. Potentially make this update live?
+# Illinois DPH. Potentially make this a live updating data set?
 
 cases_illinois <- read_excel("data/illinois_zip_cases.xlsx") %>%  
   clean_names() %>% 
@@ -59,8 +62,7 @@ racevars <- c(White = "B02001_002",
              )
 
 # collect race data from the census at the zip code
-# level; calculates percentages for graphing later;
-# filters for only chicago zip codes
+# level; calculates percentages for graphing later
 
 race_chicago <- get_acs(geography = "zcta",
                 variables = racevars,
@@ -73,12 +75,24 @@ race_chicago <- get_acs(geography = "zcta",
           percent_non_white = 100 - percent_white,
           percent_black = 100 * (BlackE / summary_est),
           percent_hispanic = 100 * (HispanicE / summary_est)) %>% 
+  
+  # filters for only Chicago Zip codes. There was not a way to use
+  # get_acs for only a specific state, so I had to unfortunately pull
+  # all zip codes.
+  
   filter(GEOID %in% zips_chicago$zip)
+
+# joins the census dataset on racial demographics by zip code (race_chicago)
+# and the Illinois Department of Public Health dataset on cases in Illinois by zip codes
 
 chicago <- left_join(x = race_chicago,
                        y = cases_illinois,
                        by = c("GEOID" = "zip")) %>% 
   mutate(positive_cases = if_else(is.na(positive_cases), 0, positive_cases)) %>% 
+  
+  # to accommodate for population size, I make a new variable that calculates the
+  # numbe of cases per 1,000 people
+  
   mutate(cases_per_1000 = positive_cases/summary_est*1000)
 ```
 
@@ -86,18 +100,35 @@ chicago <- left_join(x = race_chicago,
 
 
 ```{r}
+
+# plots the percent of a racial group for each zip code in Chicago
+
 plot_race <- function(data, fill, subtitle, legend){
   
   ggplot(chicago) +
-    geom_sf(aes(fill = data, color = data))+
+    
+    # sets both the fill and the color to the same variable so they
+    # have the same color. This makes borders look like they disappear
+    
+    geom_sf(aes(fill = data, color = data)) +
     labs(title = "Racial Distribution of Chicago by Zipcode",
          subtitle = subtitle,
          fill = legend) +
     theme_void() +
+    
+    # sets both the fill and color gradient to the same values so 
+    # that borders look like they disappear. I set breaks so that 
+    # the same breaks are used for every demographic
+    
     scale_fill_gradient(low = "white", 
                         high = fill,
                         breaks = c(0, 20, 40, 60, 80, 100)) +
     scale_color_gradient(low = "white", high = fill) +
+    
+    # cleans the appearance of the graph and also
+    # gets rid of the color legend because it is the same
+    # as the fill legend. I could have chosen to include either
+    
     theme(text = element_text(family = "Tahoma"),
           legend.position = c(1., 0.75),
           legend.key.size = unit(0.4, "cm"),
@@ -107,15 +138,26 @@ plot_race <- function(data, fill, subtitle, legend){
   
 }
 
+# plots the number of COVID-19 cases per 1000 people for each Chicago zip code
+
 plot_corona <- function(){
     ggplot(chicago) +
     geom_sf(aes(fill= cases_per_1000, color = cases_per_1000)) +
     labs(title = "Confirmed Cases of COVID-19 in Chicago by Zipcode",
          fill = "Cases Per 1000") +
     theme_void() +
+    
+    # sets both the fill and the color to the same variable so they
+    # have the same color. This makes borders look like they disappear
+    
     scale_fill_gradient(low = "white", 
                         high = "brown") +
     scale_color_gradient(low = "white", high = "brown") +
+    
+    # cleans the appearance and once again removes the color
+    # legend because it would be redundant to include (it contains
+    # the same information as the fill legend)
+    
     theme(text= element_text(family = "Tahoma"),
           legend.position = c(1.08, 0.72),
           legend.key.size = unit(0.4, "cm"),
@@ -124,8 +166,15 @@ plot_corona <- function(){
     guides(color = FALSE)
 }
 
+# creates graphs for each individual racial group as well
+# as a non-white group.
+
+# saves the figure for each in a folder. It also saves the
+# figure into the shiny app so that the images can be 
+# directly rendered in shiny.
+
 hispanic <- plot_race(data = chicago$percent_hispanic, 
-          fill = "navy",
+          fill = "orange",
           subtitle = "Hispanic Population", 
           legend = "% Hispanic" 
           )
@@ -143,7 +192,7 @@ ggsave("chicago-covid2/black.png")
 
 
 white <- plot_race(data = chicago$percent_white, 
-          fill = "darkviolet",
+          fill = "darkgreen",
           subtitle = "White Population", 
           legend = "% White"
           )
@@ -152,17 +201,20 @@ ggsave("chicago-covid2/white.png")
 
 
 non_white <- plot_race(data = chicago$percent_non_white, 
-          fill = "darkgreen",
+          fill = "darkviolet",
           subtitle = "Non White Population", 
           legend = "% Non White"
           )
 ggsave("figures/non_white.png")
-ggsave("chicago-covid2/non_white.png", scale = 0.2)
+ggsave("chicago-covid2/non_white.png")
 
+# creates the graph of COVID-19 cases, saves it to figures
+# and also saves it in the shiny directory so that it can
+# be compared to the graph of racial distribution.
 
 corona <- plot_corona()
 ggsave("figures/corona.png")
-ggsave("chicago-covid2/corona.png", scale = 0.2)
+ggsave("chicago-covid2/corona.png")
 
 ```
 
@@ -170,49 +222,63 @@ ggsave("chicago-covid2/corona.png", scale = 0.2)
 # Chicago Statistics
 ```{r}
 
+# conducts statistical analysis on the datasets.
+
 chicago_analysis <- as_tibble(chicago) %>% 
+  
+  # selects out only the relevant variables for the data analysis.
+  
   select(NAME, WhiteE, percent_white, BlackE, percent_black, HispanicE, percent_hispanic, percent_non_white, summary_est, positive_cases, cases_per_1000) %>% 
-  # mutate(majority = ifelse(percent_non_white >= 50, "white", "non_white"))
+  
+  # calculates the majority racial group for each zip code based on whether or not
+  # a certain racial group equals or exceeds 50%. If no racial group composes >=50% of the 
+  # population within the zip code, then it is placed in the 'other' category. There are
+  # very few results in the 'other' category so it does not hurt the analysis later
+  
   mutate(majority = case_when(percent_white >=50 ~ "white",
                               percent_black >=50 ~ "black",
                               percent_hispanic >=50 ~ "hispanic",
-                              TRUE ~ "other")) %>% 
-  mutate(sum = percent_white + percent_black)
+                              TRUE ~ "other")) 
 
 ```
 
 ```{r model_percent}
 
-white_model <- lm(positive_cases ~ percent_white, data = chicago_analysis) %>% 
-  tidy() %>% 
-  select(term, estimate, p.value) %>% 
-  filter(term == "percent_white")
+# creates models for the number of positive cases by racial group. I did not choose 
+# to include this because (1) I wanted to use cases per 1000 people instead of 
+# positive cases. (2) The values were messy to interpret within the context of the data.
 
-black_model <- lm(positive_cases ~ percent_black, data = chicago_analysis) %>% 
-  tidy() %>% 
-  select(term, estimate, p.value) %>% 
-  filter(term == "percent_black")
-
-hispanic_model <- lm(positive_cases ~ percent_hispanic, data = chicago_analysis) %>% 
-  tidy() %>% 
-  select(term, estimate, p.value) %>% 
-  filter(term == "percent_hispanic")
-
-non_white_model <- lm(positive_cases ~ percent_non_white, data = chicago_analysis) %>% 
-  tidy() %>% 
-  select(term, estimate, p.value) %>% 
-  filter(term == "percent_non_white")
-
-models <- rbind(white_model, black_model, hispanic_model, non_white_model)
-
-models %>% 
-  gt()
+# white_model <- lm(positive_cases ~ percent_white, data = chicago_analysis) %>% 
+#   tidy() %>% 
+#   select(term, estimate, p.value) %>% 
+#   filter(term == "percent_white")
+# 
+# black_model <- lm(positive_cases ~ percent_black, data = chicago_analysis) %>% 
+#   tidy() %>% 
+#   select(term, estimate, p.value) %>% 
+#   filter(term == "percent_black")
+# 
+# hispanic_model <- lm(positive_cases ~ percent_hispanic, data = chicago_analysis) %>% 
+#   tidy() %>% 
+#   select(term, estimate, p.value) %>% 
+#   filter(term == "percent_hispanic")
+# 
+# non_white_model <- lm(positive_cases ~ percent_non_white, data = chicago_analysis) %>% 
+#   tidy() %>% 
+#   select(term, estimate, p.value) %>% 
+#   filter(term == "percent_non_white")
+# 
+# models <- rbind(white_model, black_model, hispanic_model, non_white_model)
+# 
+# models %>% 
+#   gt()
 ```
 
 ```{r model_cases_per_1000}
 
-alternate_model <- lm(cases_per_1000 ~ majority, data = chicago_analysis) %>% 
-  tidy()
+# calculates models for each racial group based on their percent of the population
+# and the number of cases per 1000 people. I select out only the term and the estimate
+# and repeat the process for each racial group: White, Black, Hispanic.
 
 white_model <- lm(cases_per_1000 ~ percent_white, data = chicago_analysis) %>% 
   tidy() %>% 
@@ -229,27 +295,46 @@ hispanic_model <- lm(cases_per_1000 ~ percent_hispanic, data = chicago_analysis)
   select(term, estimate) %>% 
   filter(term == "percent_hispanic")
 
-# non_white_model <- lm(cases_per_1000 ~ percent_non_white, data = chicago_analysis) %>% 
-#   tidy() %>% 
-#   select(term, estimate) %>% 
-#   filter(term == "percent_non_white")
+# I combine all the models together, format them into a gt table and display the output.
 
 models <- rbind(white_model, black_model, hispanic_model)
 
 models %>% 
   gt() %>% 
   fmt_number(2)
+
+# I do not include this table because it is not particularly insightful, but it was 
+# a useful point to mention when I spoke about my regression. (I spoke about the number
+# of cases per 1000 people declining by 0.06 on average for each increase in 1% of the
+# white population. This was a little confusing and the table would have probably made
+# it worse. I explained this statistic very briefly in the shiny app).
+
 ```
 
 
 
 ```{r averages}
+
+# calculates the average number of cases per 1000 people per racial group
+
 average_cases <- function(){
+  
+  # I took in the data on cases and racial distribution and then grouped by the majority
+  # for each zip code.
+  
     table <- chicago_analysis %>% 
         group_by(majority) %>% 
+      
+      # I took the average number of cases for each racial group
         summarize(average_cases = round(mean(cases_per_1000), 0)) 
     
+    # I changed the name of the majority communities so I could display it in
+    # the graph more cleanly
+    
     table$majority <- c("Black", "Hispanic", "Other", "White")
+    
+    # Creates a column that displays the average number of cases per 1000 people
+    # for each racial group on the x axis.
     
     ggplot(table, aes(x = majority, y = average_cases)) +
         geom_col(fill = "lightblue") +
@@ -260,45 +345,85 @@ average_cases <- function(){
         theme(text=element_text(family="Tahoma"))
 }
 
+# I call the function so that I can save the output in ggsave
 average_cases() 
+
+# I save the graph in the figures folder for future reference if needed
 ggsave("figures/cases-by-race.png")
 
 ```
 
 
 ```{r graph}
+
+# performs a regression to check for a correlation between the percent_white of a zip
+# code and the numebr of COVID-19 cases per 1000 people
+
 regression <- function(){
+  
+  # creates a point on the graph for each zip code. I put the percent_white of the
+  # zip code on the x axis and the number of cases on the y-axis. I use the color
+  # and size aesthetics to provide more information even though it isn't used by 
+  # the regression. The size shows the number of people in each zip code and the
+  # color shows the majority racial group for each zip code.
+  
   ggplot(data = chicago_analysis,
        aes(x = percent_white,
            y = cases_per_1000,
            size = summary_est,
            color = majority)) +
   geom_point() +
+    
+    # Uses a linear model to perform the regression between the percent of the 
+    # white population for each zip code and the number of cases per 1000 people.
+    # I remove the standard error because it would only complicate the appearance
+    
   geom_smooth(inherit.aes = FALSE,
               aes(x = percent_white,
                   y = cases_per_1000),
               method = "lm",
-              se = FALSE, color = '#dc143c',
-              linetype = "dashed") +
+              color = '#dc143c',
+              linetype = "dashed",
+              se = FALSE) +
+    
+    # cleans the appearance of the graph and labels all necessary components
+    
   theme_classic() +
   labs(title = "Confirmed Cases of COVID-19 per 1,000 People in Chicago by Racial Group",
        x = "Percent White",
        y = "Confirmed Cases of COVID-19 per 1,000 People",
        color = "Racial Group") +
-  scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
+    
+    # provides manual colors to each racial group
+    
+  scale_color_manual(values=c("#262626", "#FEBD68", "#999999", "#C277E5")) +
+    
+    # modifies the size of the dots for the racial group majority so that the
+    # dots look more similar to their size on the graph
+    
   guides(size = FALSE,
          colour = guide_legend(override.aes = list(size=5))) +
   theme(text=element_text(family="Tahoma"))
 }
 
+# calls the regression function so that its output can be saved by ggsave
+
 regression()
+
+# saves the result for future reference
+
 ggsave("figures/regression.png")
+
+# calculates the correlation coefficient of the performed regression. I use
+# this value in the statistical analysis page on the shiny app.
+
+cor(chicago_analysis$percent_white, chicago_analysis$cases_per_1000)
 
 ```
 
 ```{r shiny_app}
 
-# data sets
+# saves data sets
 saveRDS(object = chicago, file = "chicago-covid2/chicago.RDS")
 saveRDS(object = chicago_analysis, file = "chicago-covid2/chicago_analysis.RDS")
 
@@ -308,11 +433,6 @@ saveRDS(object = black, file = "chicago-covid2/black.RDS")
 saveRDS(object = white, file = "chicago-covid2/white.RDS")
 saveRDS(object = non_white, file = "chicago-covid2/non_white.RDS")
 saveRDS(object = corona, file = "chicago-covid2/corona.RDS")
-
-
-
-
-
 ```
 
 
