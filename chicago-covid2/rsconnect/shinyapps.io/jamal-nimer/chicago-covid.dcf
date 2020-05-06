@@ -1,0 +1,12 @@
+name: chicago-covid
+title: chicago-covid
+username:
+account: jamal-nimer
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2215087
+bundleId: 3112540
+url: https://jamal-nimer.shinyapps.io/chicago-covid/
+when: 1588796235.22474
+asMultiple: FALSE
+asStatic: FALSE

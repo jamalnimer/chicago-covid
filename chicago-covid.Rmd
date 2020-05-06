@@ -291,8 +291,8 @@ ggsave("figures/regression.png")
 ```
 
 ```{r shiny_app}
-saveRDS(object = chicago, file = "chicago-covid/chicago.RDS")
-saveRDS(object = chicago_analysis, file = "chicago-covid/chicago_analysis.RDS")
+saveRDS(object = chicago, file = "chicago-covid2/chicago.RDS")
+saveRDS(object = chicago_analysis, file = "chicago-covid2/chicago_analysis.RDS")
 ```
 
 
