@@ -10,21 +10,14 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(ggplot2)
-library(sf)
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(ggspatial)
-library(ggrepel)
-library(maps)
 library(tidycensus)
 library(readxl)
 library(janitor)
 library(skimr)
 library(tigris)
-library(rgeos)
-library(sp)
 library(broom)
 library(gt)
+options(tigris_use_cache = TRUE)
 ```
 # all data retrieved April 28, 2020:
 COVID Data: https://www.dph.illinois.gov/covid19/covid19-statistics
