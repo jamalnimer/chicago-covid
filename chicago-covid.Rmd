@@ -396,7 +396,7 @@ regression <- function(){
     
     # provides manual colors to each racial group
     
-  scale_color_manual(values=c("#262626", "#FEBD68", "#999999", "#C277E5")) +
+  scale_color_manual(values=c("#262626", "#FEBD68", "#999999", "#6C985D")) +
     
     # modifies the size of the dots for the racial group majority so that the
     # dots look more similar to their size on the graph
@@ -422,17 +422,8 @@ cor(chicago_analysis$percent_white, chicago_analysis$cases_per_1000)
 ```
 
 ```{r shiny_app}
-
-# saves data sets
-saveRDS(object = chicago, file = "chicago-covid2/chicago.RDS")
+# saves data set
 saveRDS(object = chicago_analysis, file = "chicago-covid2/chicago_analysis.RDS")
-
-# graphs
-saveRDS(object = hispanic, file = "chicago-covid2/hispanic.RDS")
-saveRDS(object = black, file = "chicago-covid2/black.RDS")
-saveRDS(object = white, file = "chicago-covid2/white.RDS")
-saveRDS(object = non_white, file = "chicago-covid2/non_white.RDS")
-saveRDS(object = corona, file = "chicago-covid2/corona.RDS")
 ```
 
 
