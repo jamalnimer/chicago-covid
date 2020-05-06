@@ -98,7 +98,7 @@ plot_race <- function(data, fill, subtitle, legend){
                         high = fill,
                         breaks = c(0, 20, 40, 60, 80, 100)) +
     scale_color_gradient(low = "white", high = fill) +
-    theme(text = element_text(family = "Avenir"),
+    theme(text = element_text(family = "Tahoma"),
           legend.position = c(1., 0.75),
           legend.key.size = unit(0.4, "cm"),
           legend.title = element_text(size =10),
@@ -116,7 +116,7 @@ plot_corona <- function(){
     scale_fill_gradient(low = "white", 
                         high = "brown") +
     scale_color_gradient(low = "white", high = "brown") +
-    theme(text= element_text(family = "Avenir"),
+    theme(text= element_text(family = "Tahoma"),
           legend.position = c(1.08, 0.72),
           legend.key.size = unit(0.4, "cm"),
           legend.title = element_text(size =10),
@@ -173,7 +173,7 @@ chicago_analysis <- as_tibble(chicago) %>%
 
 ```
 
-```{r model}
+```{r model_percent}
 
 white_model <- lm(positive_cases ~ percent_white, data = chicago_analysis) %>% 
   tidy() %>% 
@@ -201,51 +201,91 @@ models %>%
   gt()
 ```
 
+```{r model_cases_per_1000}
+
+alternate_model <- lm(cases_per_1000 ~ majority, data = chicago_analysis) %>% 
+  tidy()
+
+white_model <- lm(cases_per_1000 ~ percent_white, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate) %>% 
+  filter(term == "percent_white")
+
+black_model <- lm(cases_per_1000 ~ percent_black, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate) %>% 
+  filter(term == "percent_black")
+
+hispanic_model <- lm(cases_per_1000 ~ percent_hispanic, data = chicago_analysis) %>% 
+  tidy() %>% 
+  select(term, estimate) %>% 
+  filter(term == "percent_hispanic")
+
+# non_white_model <- lm(cases_per_1000 ~ percent_non_white, data = chicago_analysis) %>% 
+#   tidy() %>% 
+#   select(term, estimate) %>% 
+#   filter(term == "percent_non_white")
+
+models <- rbind(white_model, black_model, hispanic_model)
+
+models %>% 
+  gt() %>% 
+  fmt_number(2)
+```
+
+
 
 ```{r averages}
-
-table <- chicago_analysis %>% 
+average_cases <- function(){
+  table <- chicago_analysis %>% 
   group_by(majority) %>% 
   summarize(average_cases = round(mean(cases_per_1000), 0)) 
 
-table$majority <- c("Black", "Hispanic", "Other", "White")
+  table$majority <- c("Black", "Hispanic", "Other", "White")
 
-table %>% 
-  gt() %>% 
-  tab_header(title = "Confirmed Cases of COVID-19 in Chicago by Racial Group") %>% 
-  tab_source_note(source_note = "Source: Illinois DPH 04-28-2020") %>% 
-  cols_label(majority = "Majority Racial Group",
-           average_cases = "Average Cases") %>% 
-  gtsave("figures/cases-by-race.png")
+  ggplot(table, aes(x = majority, y = average_cases)) +
+    geom_col(fill = "lightblue") +
+    theme_classic() + 
+    labs(title = "Average Confirmed Cases of COVID-19 in Chicago by Racial Group",
+       x = "Majority Racial Group",
+       y = "Average Confirmed Cases of COVID-19") + 
+    theme(text=element_text(family="Tahoma"))
 
+
+}
+
+average_cases() 
+ggsave("figures/cases-by-race.png")
 
 ```
 
 
 ```{r graph}
-
-ggplot(data = chicago_analysis,
+regression <- function(){
+  ggplot(data = chicago_analysis,
        aes(x = percent_white,
-           y = positive_cases,
+           y = cases_per_1000,
            size = summary_est,
            color = majority)) +
   geom_point() +
   geom_smooth(inherit.aes = FALSE,
               aes(x = percent_white,
-                  y = positive_cases),
+                  y = cases_per_1000),
               method = "lm",
               se = FALSE, color = '#dc143c',
               linetype = "dashed") +
   theme_classic() +
-  labs(title = "Confirmed Cases of COVID-19 in Chicago by Racial Group",
+  labs(title = "Confirmed Cases of COVID-19 per 1,000 People in Chicago by Racial Group",
        x = "Percent White",
-       y = "Confirmed Cases of COVID-19",
+       y = "Confirmed Cases of COVID-19 per 1,000 People",
        color = "Racial Group") +
   scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
   guides(size = FALSE,
          colour = guide_legend(override.aes = list(size=5))) +
-  theme(text=element_text(family="Avenir"))
+  theme(text=element_text(family="Tahoma"))
+}
 
+regression()
 ggsave("figures/regression.png")
 
 ```
