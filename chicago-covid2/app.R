@@ -17,11 +17,23 @@ library(ggplot2)
 # create functions to plot graphs:
 
 average_cases <- function(){
+    
+    # I took in the data on cases and racial distribution and then grouped by the majority
+    # for each zip code.
+    
     table <- chicago_analysis %>% 
         group_by(majority) %>% 
+        
+        # I took the average number of cases for each racial group
         summarize(average_cases = round(mean(cases_per_1000), 0)) 
     
+    # I changed the name of the majority communities so I could display it in
+    # the graph more cleanly
+    
     table$majority <- c("Black", "Hispanic", "Other", "White")
+    
+    # Creates a column that displays the average number of cases per 1000 people
+    # for each racial group on the x axis.
     
     ggplot(table, aes(x = majority, y = average_cases)) +
         geom_col(fill = "lightblue") +
@@ -33,24 +45,47 @@ average_cases <- function(){
 }
 
 regression <- function(){
+    
+    # creates a point on the graph for each zip code. I put the percent_white of the
+    # zip code on the x axis and the number of cases on the y-axis. I use the color
+    # and size aesthetics to provide more information even though it isn't used by 
+    # the regression. The size shows the number of people in each zip code and the
+    # color shows the majority racial group for each zip code.
+    
     ggplot(data = chicago_analysis,
            aes(x = percent_white,
                y = cases_per_1000,
                size = summary_est,
                color = majority)) +
         geom_point() +
+        
+        # Uses a linear model to perform the regression between the percent of the 
+        # white population for each zip code and the number of cases per 1000 people.
+        # I remove the standard error because it would only complicate the appearance
+        
         geom_smooth(inherit.aes = FALSE,
                     aes(x = percent_white,
                         y = cases_per_1000),
                     method = "lm",
-                    se = FALSE, color = '#dc143c',
-                    linetype = "dashed") +
+                    color = '#dc143c',
+                    linetype = "dashed",
+                    se = FALSE) +
+        
+        # cleans the appearance of the graph and labels all necessary components
+        
         theme_classic() +
         labs(title = "Confirmed Cases of COVID-19 per 1,000 People in Chicago by Racial Group",
              x = "Percent White",
              y = "Confirmed Cases of COVID-19 per 1,000 People",
              color = "Racial Group") +
-        scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
+        
+        # provides manual colors to each racial group
+        
+        scale_color_manual(values=c("#262626", "#FEBD68", "#999999", "#6C985D")) +
+        
+        # modifies the size of the dots for the racial group majority so that the
+        # dots look more similar to their size on the graph
+        
         guides(size = FALSE,
                colour = guide_legend(override.aes = list(size=5))) +
         theme(text=element_text(family="Tahoma"))
