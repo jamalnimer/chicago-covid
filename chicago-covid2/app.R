@@ -13,12 +13,6 @@ library(extrafont)
 library(ggplot2)
 library(gridExtra)
 
-
-# read in the data from the .rmd
-
-chicago <- readRDS("chicago.RDS")
-chicago_analysis <- readRDS("chicago_analysis.RDS")
-
 # create functions to plot graphs:
 
 average_cases <- function(){
@@ -31,12 +25,10 @@ average_cases <- function(){
     ggplot(table, aes(x = majority, y = average_cases)) +
         geom_col(fill = "lightblue") +
         theme_classic() + 
-        labs(title = "Average Confirmed Cases of COVID-19 in Chicago by Racial Group",
+        labs(title = "Average Confirmed Cases of COVID-19 in Chicago per 1,000 People by Racial Group",
              x = "Majority Racial Group",
-             y = "Average Confirmed Cases of COVID-19") + 
+             y = "Average Confirmed Cases of COVID-19 per 1,000 People") + 
         theme(text=element_text(family="Tahoma"))
-    
-    
 }
 
 regression <- function(){
@@ -63,44 +55,16 @@ regression <- function(){
         theme(text=element_text(family="Tahoma"))
 }
 
-plot_race <- function(data, fill, subtitle, legend){
-    
-    ggplot(chicago) +
-        geom_sf(aes(fill = data, color = data))+
-        labs(title = "Racial Distribution of Chicago by Zipcode",
-             subtitle = subtitle,
-             fill = legend) +
-        theme_void() +
-        scale_fill_gradient(low = "white", 
-                            high = fill,
-                            breaks = c(0, 20, 40, 60, 80, 100)) +
-        scale_color_gradient(low = "white", high = fill) +
-        theme(text = element_text(family = "Tahoma"),
-              legend.position = c(1., 0.75),
-              legend.key.size = unit(0.4, "cm"),
-              legend.title = element_text(size =10),
-              legend.text = element_text(size = 8)) +
-        guides(color = FALSE)
-    
-}
+# read in the data from the .rmd
 
-plot_corona <- function(){
-    ggplot(chicago) +
-        geom_sf(aes(fill= cases_per_1000, color = cases_per_1000)) +
-        labs(title = "Confirmed Cases of COVID-19 in Chicago by Zipcode",
-             fill = "Cases Per 1000") +
-        theme_void() +
-        scale_fill_gradient(low = "white", 
-                            high = "brown") +
-        scale_color_gradient(low = "white", high = "brown") +
-        theme(text= element_text(family = "Tahoma"),
-              legend.position = c(1.08, 0.72),
-              legend.key.size = unit(0.4, "cm"),
-              legend.title = element_text(size =10),
-              legend.text = element_text(size = 8)) +
-        guides(color = FALSE)
-}
+chicago <- readRDS("chicago.RDS")
+chicago_analysis <- readRDS("chicago_analysis.RDS")
 
+hispanic <- readRDS("hispanic.RDS")
+black <- readRDS("black.RDS")
+white <- readRDS("white.RDS")
+non_white <- readRDS("non_white.RDS")
+corona <- readRDS("corona.RDS")
 
 # Define UI for application that draws a histogram
 
@@ -119,15 +83,13 @@ ui <- navbarPage(
                                      "Percent Hispanic",
                                      "Percent Non White"),
                          selected = "Percent White"),
-             
-             
-             mainPanel(
-                 plotOutput("race_map", width = "140%"),
-                 br(),
-                 br(),
-                 br(),
-                 br()
+             fluidRow(
+                 column(6, imageOutput("race_map")),
+                 column(6, imageOutput("corona_map"))
              ),
+                 br(),
+                 br(),
+                 br(),
              
     ),
     
@@ -173,49 +135,97 @@ ui <- navbarPage(
 
 server <- function(input, output) {
     
-    output$race_map <- renderPlot({
+    # output$race_map <- renderPlot({
+    #     
+    #     # load pre-created items
+    # 
+    #     race <- switch(input$var,
+    #                    "Percent White" = white,
+    #                    "Percent Black" = black,
+    #                    "Percent Hispanic" = hispanic,
+    #                    "Percent Non White" = non_white)
+    #     
+    #     # data <- switch(input$var,
+    #     #                "Percent White" = chicago$percent_white,
+    #     #                "Percent Black" = chicago$percent_black,
+    #     #                "Percent Hispanic" = chicago$percent_hispanic,
+    #     #                "Percent Non White" = chicago$percent_non_white)
+    #     # 
+    #     # fill <- switch(input$var, 
+    #     #                "Percent White" = "darkgreen",
+    #     #                "Percent Black" = "black",
+    #     #                "Percent Hispanic" = "darkorange",
+    #     #                "Percent Non White" = "darkviolet")
+    #     # 
+    #     # legend <- switch(input$var,
+    #     #                  "Percent White" = "% White",
+    #     #                  "Percent Black" = "% Black",
+    #     #                  "Percent Hispanic" = "% Hispanic",
+    #     #                  "Percent Non White" = "% Non White")
+    #     # 
+    #     # subtitle <- switch(input$var,
+    #     #                    "Percent White" = "White Population",
+    #     #                    "Percent Black" = "Black Population",
+    #     #                    "Percent Hispanic" = "Hispanic Population",
+    #     #                    "Percent Non White" = "Non White Population")
+    #     # 
+    #     # 
+    #     # race_graph <- plot_race(data,
+    #     #                         fill,
+    #     #                         legend,
+    #     #                         subtitle)
+    #     # 
+    #     # corona_graph <- plot_corona()
+    #     
+    #     # grid.arrange(race_graph,corona_graph, ncol=2)
+    #     
+    #     # is it an issue working with the "chicago" data or is it an issue with geom_sf?
+    #     
+    #     grid.arrange(race, corona, ncol=2)
+    #     
+    #     
+    # })
+    
+    output$race_map <- renderImage({
         
-        # data <- switch(input$var,
-        #                "Percent White" = chicago$percent_white,
-        #                "Percent Black" = chicago$percent_black,
-        #                "Percent Hispanic" = chicago$percent_hispanic,
-        #                "Percent Non White" = chicago$percent_non_white)
-        # 
-        # fill <- switch(input$var, 
-        #                "Percent White" = "darkgreen",
-        #                "Percent Black" = "black",
-        #                "Percent Hispanic" = "darkorange",
-        #                "Percent Non White" = "darkviolet")
-        # 
-        # legend <- switch(input$var,
-        #                  "Percent White" = "% White",
-        #                  "Percent Black" = "% Black",
-        #                  "Percent Hispanic" = "% Hispanic",
-        #                  "Percent Non White" = "% Non White")
-        # 
-        # subtitle <- switch(input$var,
-        #                    "Percent White" = "White Population",
-        #                    "Percent Black" = "Black Population",
-        #                    "Percent Hispanic" = "Hispanic Population",
-        #                    "Percent Non White" = "Non White Population")
-        # 
-        # 
-        # race_graph <- plot_race(data,
-        #                         fill,
-        #                         legend,
-        #                         subtitle)
-        # 
-        # corona_graph <- plot_corona()
+        # load pre-created items
         
-        # grid.arrange(race_graph,corona_graph, ncol=2)
+        data <- switch(input$var,
+                       "Percent White" = "white.png",
+                       "Percent Black" = "black.png",
+                       "Percent Hispanic" = "hispanic.png",
+                       "Percent Non White" = "non_white.png")
         
-        # is it an issue working with the "chicago" data or is it an issue with geom_sf?
+        race_filename <- normalizePath(file.path(data))
         
-        ggplot(chicago_analysis, aes(x = percent_white)) +
-            geom_bar()
+        race_image <- list(src = race_filename, width = "100%")
+        
+        race_image
+        
+            # # When input$n is 1, filename is ./images/image1.jpeg
+            # filename <- normalizePath(file.path('./images',
+            #                                     paste('image', input$n, '.jpeg', sep='')))
+            # 
+            # Return a list containing the filename
+        #     list(src = filename)
+        # }, deleteFile = FALSE)
+        # 
+        
+        # 
+        # grid.arrange(race_image, corona_image, ncol=2)
         
         
-    })
+    }, deleteFile = FALSE)
+    
+    
+    
+    output$corona_map <- renderImage({
+        corona_filename <- normalizePath(file.path("corona.png"))
+        corona_image <- list(src = corona_filename, width = "100%")
+    }, deleteFile = FALSE)
+    
+    
+    
     
     output$linear_regression <- renderPlot({
         regression()

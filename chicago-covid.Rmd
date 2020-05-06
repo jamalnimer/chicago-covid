@@ -124,37 +124,45 @@ plot_corona <- function(){
     guides(color = FALSE)
 }
 
-plot_race(data = chicago$percent_hispanic, 
+hispanic <- plot_race(data = chicago$percent_hispanic, 
           fill = "navy",
           subtitle = "Hispanic Population", 
           legend = "% Hispanic" 
           )
 ggsave("figures/hispanic.png")
+ggsave("chicago-covid2/hispanic.png")
 
-plot_race(data = chicago$percent_black, 
+
+black <- plot_race(data = chicago$percent_black, 
           fill = "black",
           subtitle = "Black Population", 
           legend = "% Black"
           )
 ggsave("figures/black.png")
+ggsave("chicago-covid2/black.png")
 
-plot_race(data = chicago$percent_white, 
+
+white <- plot_race(data = chicago$percent_white, 
           fill = "darkviolet",
           subtitle = "White Population", 
           legend = "% White"
           )
 ggsave("figures/white.png")
+ggsave("chicago-covid2/white.png")
 
-plot_race(data = chicago$percent_non_white, 
+
+non_white <- plot_race(data = chicago$percent_non_white, 
           fill = "darkgreen",
           subtitle = "Non White Population", 
           legend = "% Non White"
           )
 ggsave("figures/non_white.png")
+ggsave("chicago-covid2/non_white.png", scale = 0.2)
 
-plot_corona()
+
+corona <- plot_corona()
 ggsave("figures/corona.png")
-
+ggsave("chicago-covid2/corona.png", scale = 0.2)
 
 ```
 
@@ -237,21 +245,19 @@ models %>%
 
 ```{r averages}
 average_cases <- function(){
-  table <- chicago_analysis %>% 
-  group_by(majority) %>% 
-  summarize(average_cases = round(mean(cases_per_1000), 0)) 
-
-  table$majority <- c("Black", "Hispanic", "Other", "White")
-
-  ggplot(table, aes(x = majority, y = average_cases)) +
-    geom_col(fill = "lightblue") +
-    theme_classic() + 
-    labs(title = "Average Confirmed Cases of COVID-19 in Chicago by Racial Group",
-       x = "Majority Racial Group",
-       y = "Average Confirmed Cases of COVID-19") + 
-    theme(text=element_text(family="Tahoma"))
-
-
+    table <- chicago_analysis %>% 
+        group_by(majority) %>% 
+        summarize(average_cases = round(mean(cases_per_1000), 0)) 
+    
+    table$majority <- c("Black", "Hispanic", "Other", "White")
+    
+    ggplot(table, aes(x = majority, y = average_cases)) +
+        geom_col(fill = "lightblue") +
+        theme_classic() + 
+        labs(title = "Average Confirmed Cases of COVID-19 in Chicago per 1,000 People by Racial Group",
+             x = "Majority Racial Group",
+             y = "Average Confirmed Cases of COVID-19 per 1,000 People") + 
+        theme(text=element_text(family="Tahoma"))
 }
 
 average_cases() 
@@ -291,8 +297,22 @@ ggsave("figures/regression.png")
 ```
 
 ```{r shiny_app}
+
+# data sets
 saveRDS(object = chicago, file = "chicago-covid2/chicago.RDS")
 saveRDS(object = chicago_analysis, file = "chicago-covid2/chicago_analysis.RDS")
+
+# graphs
+saveRDS(object = hispanic, file = "chicago-covid2/hispanic.RDS")
+saveRDS(object = black, file = "chicago-covid2/black.RDS")
+saveRDS(object = white, file = "chicago-covid2/white.RDS")
+saveRDS(object = non_white, file = "chicago-covid2/non_white.RDS")
+saveRDS(object = corona, file = "chicago-covid2/corona.RDS")
+
+
+
+
+
 ```
 
 
