@@ -172,7 +172,7 @@ hispanic <- plot_race(data = chicago$percent_hispanic,
           legend = "% Hispanic" 
           )
 ggsave("figures/hispanic.png")
-ggsave("chicago-covid2/hispanic.png")
+ggsave("chicago-covid/hispanic.png")
 
 
 black <- plot_race(data = chicago$percent_black, 
@@ -181,7 +181,7 @@ black <- plot_race(data = chicago$percent_black,
           legend = "% Black"
           )
 ggsave("figures/black.png")
-ggsave("chicago-covid2/black.png")
+ggsave("chicago-covid/black.png")
 
 
 white <- plot_race(data = chicago$percent_white, 
@@ -190,7 +190,7 @@ white <- plot_race(data = chicago$percent_white,
           legend = "% White"
           )
 ggsave("figures/white.png")
-ggsave("chicago-covid2/white.png")
+ggsave("chicago-covid/white.png")
 
 
 non_white <- plot_race(data = chicago$percent_non_white, 
@@ -199,7 +199,7 @@ non_white <- plot_race(data = chicago$percent_non_white,
           legend = "% Non White"
           )
 ggsave("figures/non_white.png")
-ggsave("chicago-covid2/non_white.png")
+ggsave("chicago-covid/non_white.png")
 
 # creates the graph of COVID-19 cases, saves it to figures
 # and also saves it in the shiny directory so that it can
@@ -207,7 +207,7 @@ ggsave("chicago-covid2/non_white.png")
 
 corona <- plot_corona()
 ggsave("figures/corona.png")
-ggsave("chicago-covid2/corona.png")
+ggsave("chicago-covid/corona.png")
 
 ```
 
@@ -416,7 +416,7 @@ cor(chicago_analysis$percent_white, chicago_analysis$cases_per_1000)
 
 ```{r shiny_app}
 # saves data set
-saveRDS(object = chicago_analysis, file = "chicago-covid2/chicago_analysis.RDS")
+saveRDS(object = chicago_analysis, file = "chicago-covid/chicago_analysis.RDS")
 ```
 
 
