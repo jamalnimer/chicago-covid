@@ -6,12 +6,15 @@
 #
 #    http://shiny.rstudio.com/
 #
-
+library(tidyverse)
 library(shiny)
 library(shinythemes)
 library(cowplot)
 library(extrafont)
+library(ggplot2)
 
+chicago <- readRDS("chicago.RDS")
+chicago_analysis <- readRDS("chicago_analysis.RDS")
 
 # Define UI for application that draws a histogram
 
@@ -82,11 +85,46 @@ ui <- navbarPage(
 
 server <- function(input, output) {
     
-    output$corona_map <- renderPlot({
-        plot_corona()
-    })
-    
     output$race_map <- renderPlot({
+        
+        plot_race <- function(data, fill, subtitle, legend){
+            
+            ggplot(chicago) +
+                geom_sf(aes(fill = data, color = data))+
+                labs(title = "Racial Distribution of Chicago by Zipcode",
+                     subtitle = subtitle,
+                     fill = legend) +
+                theme_void() +
+                scale_fill_gradient(low = "white", 
+                                    high = fill,
+                                    breaks = c(0, 20, 40, 60, 80, 100)) +
+                scale_color_gradient(low = "white", high = fill) +
+                theme(text = element_text(family = "Tahoma"),
+                      legend.position = c(1., 0.75),
+                      legend.key.size = unit(0.4, "cm"),
+                      legend.title = element_text(size =10),
+                      legend.text = element_text(size = 8)) +
+                guides(color = FALSE)
+            
+        }
+        
+        plot_corona <- function(){
+            ggplot(chicago) +
+                geom_sf(aes(fill= cases_per_1000, color = cases_per_1000)) +
+                labs(title = "Confirmed Cases of COVID-19 in Chicago by Zipcode",
+                     fill = "Cases Per 1000") +
+                theme_void() +
+                scale_fill_gradient(low = "white", 
+                                    high = "brown") +
+                scale_color_gradient(low = "white", high = "brown") +
+                theme(text= element_text(family = "Tahoma"),
+                      legend.position = c(1.08, 0.72),
+                      legend.key.size = unit(0.4, "cm"),
+                      legend.title = element_text(size =10),
+                      legend.text = element_text(size = 8)) +
+                guides(color = FALSE)
+        }
+        
         
         data <- switch(input$var,
                        "Percent White" = chicago$percent_white,
@@ -126,11 +164,55 @@ server <- function(input, output) {
     })
     
     output$linear_regression <- renderPlot({
+        
+        regression <- function(){
+            ggplot(data = chicago_analysis,
+                   aes(x = percent_white,
+                       y = cases_per_1000,
+                       size = summary_est,
+                       color = majority)) +
+                geom_point() +
+                geom_smooth(inherit.aes = FALSE,
+                            aes(x = percent_white,
+                                y = cases_per_1000),
+                            method = "lm",
+                            se = FALSE, color = '#dc143c',
+                            linetype = "dashed") +
+                theme_classic() +
+                labs(title = "Confirmed Cases of COVID-19 per 1,000 People in Chicago by Racial Group",
+                     x = "Percent White",
+                     y = "Confirmed Cases of COVID-19 per 1,000 People",
+                     color = "Racial Group") +
+                scale_color_manual(values=c("#228B22", "#E69F00", "#999999", "#56B4E9")) +
+                guides(size = FALSE,
+                       colour = guide_legend(override.aes = list(size=5))) +
+                theme(text=element_text(family="Tahoma"))
+        }
+        
         regression()
     })
     
 
     output$average_cases <- renderPlot({
+        
+        average_cases <- function(){
+            table <- chicago_analysis %>% 
+                group_by(majority) %>% 
+                summarize(average_cases = round(mean(cases_per_1000), 0)) 
+            
+            table$majority <- c("Black", "Hispanic", "Other", "White")
+            
+            ggplot(table, aes(x = majority, y = average_cases)) +
+                geom_col(fill = "lightblue") +
+                theme_classic() + 
+                labs(title = "Average Confirmed Cases of COVID-19 in Chicago by Racial Group",
+                     x = "Majority Racial Group",
+                     y = "Average Confirmed Cases of COVID-19") + 
+                theme(text=element_text(family="Tahoma"))
+            
+            
+        }
+        
         average_cases()
     })
     

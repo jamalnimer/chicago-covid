@@ -290,10 +290,12 @@ ggsave("figures/regression.png")
 
 ```
 
+```{r shiny_app}
+saveRDS(object = chicago, file = "chicago-covid/chicago.RDS")
+saveRDS(object = chicago_analysis, file = "chicago-covid/chicago_analysis.RDS")
+```
 
-- Population density confounding variable; cases per 1,000 people or number versus number
-- NOT percent and number.
-- Calculate percentage of cases? No because confounding 
-- for a randomly selected district in Chicago, are COVID cases higher for certain minorities
+
+
 
 
