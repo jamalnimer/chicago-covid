@@ -6,12 +6,13 @@
 #
 #    http://shiny.rstudio.com/
 #
+
+# loads in the necessary libraries
 library(tidyverse)
 library(shiny)
 library(shinythemes)
 library(extrafont)
 library(ggplot2)
-library(gridExtra)
 
 # create functions to plot graphs:
 
@@ -57,14 +58,7 @@ regression <- function(){
 
 # read in the data from the .rmd
 
-chicago <- readRDS("chicago.RDS")
 chicago_analysis <- readRDS("chicago_analysis.RDS")
-
-hispanic <- readRDS("hispanic.RDS")
-black <- readRDS("black.RDS")
-white <- readRDS("white.RDS")
-non_white <- readRDS("non_white.RDS")
-corona <- readRDS("corona.RDS")
 
 # Define UI for application that draws a histogram
 
@@ -72,10 +66,15 @@ ui <- navbarPage(
     theme = shinytheme("simplex"),
     "COVID-19 Prevalence in Chicago by Race",
     
+    # Presents the maps of Corona and racial distribution
+    
     tabPanel("Graphical Display",
              h1("COVID-19 Disproportionately Affects Chicago's Minorities"),
              br(),
              h3("Select a racial population to graph its population density next to a map of COVID-19 cases in Chicago by zip code."),
+             
+             # allows the user to select the racial group distribution they are interested in
+             
              selectInput("var", 
                          label = "",
                          choices = c("Percent White", 
@@ -83,6 +82,9 @@ ui <- navbarPage(
                                      "Percent Hispanic",
                                      "Percent Non White"),
                          selected = "Percent White"),
+             
+             # places the graphs side by side
+             
              fluidRow(
                  column(6, imageOutput("race_map")),
                  column(6, imageOutput("corona_map"))
@@ -99,11 +101,17 @@ ui <- navbarPage(
              h2("Data Collection:"),
              h4("To conduct this analysis, I relied on two data sets. The first data set came from the Illinois Department of Public Health which contained the number of confirmed cases of COVID-19 in each zip code. The second data set came from the 2010 census which provided the racial breakdown of zip codes in Chicago. I joined the datasets to correlate racial distribution and COVID-19 cases."),
              br(),
+             
+             # provides a graph of the linear regression and an interpretation of its results
+             
              h2("Linear Regression:"),
              h4("The graph below shows that as the White population increases, the number of cases per 1,000 people decreases (the size of each dot corresponds to the population size of the zip code)."),
              plotOutput("linear_regression", width = "100%"),
              p("The correlation coefficient between the proportion of the White population and the number of positive cases per 1,000 people is -0.6032. This suggests a moderately strong negative linear relationship between the two variables. The slope of the regression shows that for every 1% increase in the White population, we expect on average that the number of cases per 1,000 people will decrease by 0.0612. In other words, every time the proportion of the White population increases by 15%, there is 1 fewer positive case per 1,000 people. The graph below provides a more straightforward conceptualization of this relationship by showing the average number of cases for each racial community."),
              br(),
+             
+             # provides a graph of the average cases for each racial group as well as basic analysis
+             
              h2("Average Cases per Racial Group:"),
              h4("The graph below shows that zip codes where at least 50% of the population was White have far fewer cases on average compared to their non-White majority counterparts."),
              br(),
@@ -116,6 +124,9 @@ ui <- navbarPage(
              ),
     
     tabPanel("Policy Recommendations",
+             
+             # Provides 3 relevant policy insights
+             
              h1("Coordinated Policy Design: Health and Non-Health Sector Response"),
              br(),
              h2("Public Health Infrastructure"),
@@ -135,60 +146,11 @@ ui <- navbarPage(
 
 server <- function(input, output) {
     
-    # output$race_map <- renderPlot({
-    #     
-    #     # load pre-created items
-    # 
-    #     race <- switch(input$var,
-    #                    "Percent White" = white,
-    #                    "Percent Black" = black,
-    #                    "Percent Hispanic" = hispanic,
-    #                    "Percent Non White" = non_white)
-    #     
-    #     # data <- switch(input$var,
-    #     #                "Percent White" = chicago$percent_white,
-    #     #                "Percent Black" = chicago$percent_black,
-    #     #                "Percent Hispanic" = chicago$percent_hispanic,
-    #     #                "Percent Non White" = chicago$percent_non_white)
-    #     # 
-    #     # fill <- switch(input$var, 
-    #     #                "Percent White" = "darkgreen",
-    #     #                "Percent Black" = "black",
-    #     #                "Percent Hispanic" = "darkorange",
-    #     #                "Percent Non White" = "darkviolet")
-    #     # 
-    #     # legend <- switch(input$var,
-    #     #                  "Percent White" = "% White",
-    #     #                  "Percent Black" = "% Black",
-    #     #                  "Percent Hispanic" = "% Hispanic",
-    #     #                  "Percent Non White" = "% Non White")
-    #     # 
-    #     # subtitle <- switch(input$var,
-    #     #                    "Percent White" = "White Population",
-    #     #                    "Percent Black" = "Black Population",
-    #     #                    "Percent Hispanic" = "Hispanic Population",
-    #     #                    "Percent Non White" = "Non White Population")
-    #     # 
-    #     # 
-    #     # race_graph <- plot_race(data,
-    #     #                         fill,
-    #     #                         legend,
-    #     #                         subtitle)
-    #     # 
-    #     # corona_graph <- plot_corona()
-    #     
-    #     # grid.arrange(race_graph,corona_graph, ncol=2)
-    #     
-    #     # is it an issue working with the "chicago" data or is it an issue with geom_sf?
-    #     
-    #     grid.arrange(race, corona, ncol=2)
-    #     
-    #     
-    # })
+    # produces the map for the user's selected racial demographic
     
     output$race_map <- renderImage({
         
-        # load pre-created items
+        # change input to the filename path.
         
         data <- switch(input$var,
                        "Percent White" = "white.png",
@@ -196,43 +158,55 @@ server <- function(input, output) {
                        "Percent Hispanic" = "hispanic.png",
                        "Percent Non White" = "non_white.png")
         
+        # set the race_filename to the value passed from the user
+        
         race_filename <- normalizePath(file.path(data))
+        
+        # pulls the image and sets its width to 100% so it takes up the entire space 
+        # of the columns assigned in the UI.
+        # I do not provide a height because I want the height to change according to 
+        # the user's screen
         
         race_image <- list(src = race_filename, width = "100%")
         
         race_image
-        
-            # # When input$n is 1, filename is ./images/image1.jpeg
-            # filename <- normalizePath(file.path('./images',
-            #                                     paste('image', input$n, '.jpeg', sep='')))
-            # 
-            # Return a list containing the filename
-        #     list(src = filename)
-        # }, deleteFile = FALSE)
-        # 
-        
-        # 
-        # grid.arrange(race_image, corona_image, ncol=2)
-        
-        
+
+        # I don't delete the file because I want to continue using it. The image is 
+        # loaded from the .rmd so it won't be reloaded from the shiny if I delete it.
     }, deleteFile = FALSE)
     
-    
+    # produces the map of COVID-19 cases in Chicago
     
     output$corona_map <- renderImage({
+        
+        # sets the file path to its saved location from the .rmd
+        
         corona_filename <- normalizePath(file.path("corona.png"))
+        
+        # pulls the image and sets its width to 100% so it takes up the entire space 
+        # of the columns assigned in the UI.
+        # I do not provide a height because I want the height to change according to 
+        # the user's screen
+        
         corona_image <- list(src = corona_filename, width = "100%")
     }, deleteFile = FALSE)
     
-    
-    
-    
     output$linear_regression <- renderPlot({
+        
+        # calls the regression() function which produces the graph of 
+        # COVID-19 cases per 1,000 people by percent_white. I placed
+        # the function above to make the server more readable
+        
         regression()
     })
     
 
     output$average_cases <- renderPlot({
+        
+        # calls the average_cases() function which produces the graph of 
+        # COVID-19 cases per 1,000 people by racial group majority I placed
+        # the function above to make the server more readable.
+        
         average_cases()
     })
     
