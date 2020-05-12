@@ -1,0 +1,27 @@
+---
+title: "webscraping"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+```
+
+```{r}
+url <- "https://www.dph.illinois.gov/covid19/covid19-statistics"
+
+webpage <- read_html(url)
+
+cases_data_html <- html_table(html_nodes(webpage, "tbody"))
+
+cases_data <- html_table(cases_data_html)
+```
+
+```{r}
+cases_data_html
+
+```
+
+
